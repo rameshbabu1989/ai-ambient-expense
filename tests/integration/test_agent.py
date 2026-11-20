@@ -32,7 +32,16 @@ def test_agent_stream() -> None:
     runner = Runner(agent=root_agent, session_service=session_service, app_name="test")
 
     message = types.Content(
-        role="user", parts=[types.Part.from_text(text="Why is the sky blue?")]
+        role="user",
+        parts=[
+            types.Part.from_text(
+                text=(
+                    '{"amount": 42.5, "submitter": "alex@example.com", '
+                    '"category": "meals", "description": "Client lunch", '
+                    '"date": "2026-11-20"}'
+                )
+            )
+        ],
     )
 
     events = list(
@@ -45,13 +54,7 @@ def test_agent_stream() -> None:
     )
     assert len(events) > 0, "Expected at least one message"
 
-    has_text_content = False
-    for event in events:
-        if (
-            event.content
-            and event.content.parts
-            and any(part.text for part in event.content.parts)
-        ):
-            has_text_content = True
-            break
-    assert has_text_content, "Expected at least one message with text content"
+    assert any(
+        isinstance(event.output, dict) and event.output.get("status") == "approved"
+        for event in events
+    ), "Expected the low-value expense to be auto-approved"
